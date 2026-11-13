@@ -204,6 +204,10 @@ textarea:focus{outline:2px solid #9BB3A4;outline-offset:1px}
   padding:0 12px;font-size:16px;font-family:inherit;background:#fff;letter-spacing:.16em;
 }
 .tpOk{font-size:14px;color:#2F6B4F;font-weight:700;margin:2px 0 0}
+/* 說話評估頁：兩題並排 */
+.oralGrid{display:grid;gap:12px}
+.oralQ{font-size:17px;font-weight:700;line-height:1.55;color:#1F2A24;margin:0 0 12px}
+.pwBox{margin-top:14px}
 
 @media (min-width:700px){
   .classList{grid-template-columns:repeat(5,1fr)}
@@ -228,6 +232,7 @@ textarea:focus{outline:2px solid #9BB3A4;outline-offset:1px}
   .s3tag{font-size:14px;padding:4px 12px}
   .s3rows{align-self:center}
   .s3rows .chip{font-size:13px;padding:11px 8px;gap:6px;white-space:nowrap}
+  .oralGrid{grid-template-columns:1fr 1fr;align-items:start}
 }
 </style>
 </head>
@@ -264,7 +269,7 @@ var LS_KEY = 'kcps_sci2_assess_v1';
 var LS_HOOK = 'kcps_sci2_webhook_v1';
 /* 把 Google Apps Script 的 /exec 網址貼在下面引號內，重新上傳到 GitHub 後，
    所有平板一打開就會自動上傳成績，不必逐部設定。留空則由教師後台輸入。 */
-var DEFAULT_HOOK = 'https://script.google.com/macros/s/AKfycbwlJ1S18EJVgaotXHPCvjZ9ebGcAZz_K89CszVcmcms26pDPgeWrq_qu_BsftPdcjJl/exec';
+var DEFAULT_HOOK = 'https://script.google.com/macros/s/AKfycbwiX-KuOHisgPyBzqt8k0yl-cjAXciSdLLNDW2RRu_vc9NVUl9bpQOvlOLuWUyAPgt8/exec';
 function hookUrl(){ return localStorage.getItem(LS_HOOK) || DEFAULT_HOOK || ''; }
 
 var DATA = {
@@ -362,10 +367,10 @@ function showFooter(v){
 function startView(){
   var h = '';
   h += '<h1>動物和植物．人與環境</h1>';
-  h += '<p class="sub">科學科　二年級　二上　多元評估　·　6 個部分　·　共 50 分</p>';
+  h += '<p class="sub">科學科　二年級　二上　多元評估　·　5 個部分　·　共 50 分</p>';
   h += '<div class="stage">';
   h += '<h2>先選擇你的班別和學號</h2>';
-  h += '<p class="lead">全部 6 個部分，約需 10 至 15 分鐘。可以用手指點選，也可以用滑鼠拖拉。</p>';
+  h += '<p class="lead">全部 5 個部分，約需 10 至 15 分鐘。可以用手指點選，也可以用滑鼠拖拉。</p>';
   h += '<div class="pick"><p class="lab">班別</p><div class="classList">';
   CLASSES.forEach(function(c){
     h += '<button class="btn ' + (st.cls===c?'on':'') + '" data-cls="' + c + '">' + c + '</button>';
@@ -480,13 +485,6 @@ function s3Body(){
   return h;
 }
 
-/* ---------------- 第 4 關：生長的條件（口述，老師輸入答對數目） ---------------- */
-function s4Body(){
-  var h = '<p class="oralTip">這一題由學生口述作答：說出後，老師按答對數目，再輸入密碼確認，才可繼續。</p>';
-  h += teacherPanel(4, 2, '每答對一個 3 分，最多 6 分');
-  return h;
-}
-
 /* ---------------- 第 5 關：污染來源 ---------------- */
 function s5Body(){
   var a = st.ans.s5 || {};
@@ -501,29 +499,35 @@ function s5Body(){
   return h;
 }
 
-/* ---------------- 第 6 關：愛護環境行動（口述，老師輸入答對數目） ---------------- */
-function s6Body(){
-  var h = '<p class="oralTip">這一題由學生口述作答：說出後，老師按答對數目，再輸入密碼確認，才可查看成績。</p>';
-  h += teacherPanel(6, 1, '答對 4 分');
+/* ---------------- 說話評估頁：兩題口述，逐題給分，最後一次密碼 ---------------- */
+function oralBody(){
+  var h = '<div class="oralGrid">';
+  h += qPanel(4, 2, '第 1 題', '要令植物健康生長，需要甚麼條件？向老師說出其中兩個。', '每答對一個 3 分，共 6 分');
+  h += qPanel(6, 1, '第 2 題', '要愛護環境或者改善污染，我們市民可以做甚麼？向老師說出其中一個方法。', '答對 4 分');
+  h += '</div>';
+  h += '<div class="tpanel pwBox">';
+  if (st.tu[4]===true && st.tu[6]===true){
+    h += '<p class="tpOk">已確認，可以按「查看成績」。</p>';
+  } else {
+    h += '<div class="tpHead">教師密碼<span>（兩題都按好答對數目後，輸入一次）</span></div>';
+    h += '<div class="tpRow"><input class="tpPw" id="pwfinal" type="password" inputmode="numeric" maxlength="4" placeholder="4 位密碼"><button class="tbtn wide" data-tconfirm="final">確認</button></div>';
+  }
+  h += '</div>';
   return h;
 }
 
-/* ---------------- 老師評分面板（口述題用） ---------------- */
-function teacherPanel(station, maxN, note){
+function qPanel(station, maxN, label, q, note){
   var sc = st.ts[station];
-  var un = st.tu[station];
-  var h = '<div class="tpanel"><div class="tpHead">教師評分<span>（' + note + '）</span></div>';
-  h += '<div class="tpRow"><span class="tpLab">答對數目</span><div class="tpBtns">';
-  for (var n=0; n<=maxN; n++){
-    h += '<button class="tbtn ' + (sc===n?'on':'') + '" data-tscore="' + station + '" data-n="' + n + '">' + n + '</button>';
-  }
-  h += '</div></div>';
-  if (un){
-    h += '<p class="tpOk">已確認，可以繼續。</p>';
+  var h = '<div class="tpanel"><div class="tpHead">' + label + '<span>（' + note + '）</span></div>';
+  h += '<p class="oralQ">' + q + '</p>';
+  if (st.tu[station]===true){
+    h += '<p class="tpOk" style="margin:0">答對 ' + (sc==null?'—':sc) + '，已確認。</p>';
   } else {
-    h += '<div class="tpRow"><span class="tpLab">教師密碼</span>' +
-         '<input class="tpPw" id="pw' + station + '" type="password" inputmode="numeric" maxlength="4" placeholder="4 位密碼">' +
-         '<button class="tbtn wide" data-tconfirm="' + station + '">確認</button></div>';
+    h += '<div class="tpRow" style="margin:0"><span class="tpLab">答對數目</span><div class="tpBtns">';
+    for (var n=0; n<=maxN; n++){
+      h += '<button class="tbtn ' + (sc===n?'on':'') + '" data-tscore="' + station + '" data-n="' + n + '">' + n + '</button>';
+    }
+    h += '</div></div>';
   }
   h += '</div>';
   return h;
@@ -533,10 +537,9 @@ function teacherPanel(station, maxN, note){
 function done1(){ var a=st.ans.s1||{}; return DATA.s1.items.every(function(it){ return !!a[it.id]; }); }
 function done2(){ var a=st.ans.s2||{}; return DATA.s2.items.every(function(it){ return !!a[it.id]; }); }
 function done3(){ var a=st.ans.s3||{}; return DATA.s3.items.every(function(it){ return !!a[it.id]; }); }
-function done4(){ return st.tu[4]===true && st.ts[4]!==null; }
 function done5(){ var a=st.ans.s5||{}; return DATA.s5.items.every(function(it){ return !!a[it.id]; }); }
-function done6(){ return st.tu[6]===true && st.ts[6]!==null; }
-var DONES = [done1,done2,done3,done4,done5,done6];
+function doneOral(){ return st.ts[4]!=null && st.ts[6]!=null && st.tu[4]===true && st.tu[6]===true; }
+var DONES = [done1,done2,done3,done5,doneOral];
 
 /* ---------------- 計分 ---------------- */
 function scoreAll(){
@@ -574,20 +577,19 @@ function render(){
     ['生物與非生物','把五張照片拖到正確的框；也可以先點照片，再點框子。'],
     ['動物吃甚麼','為三隻動物選出牠們會吃的食物。'],
     ['葉、根、莖的功能','為植物的三個部分選出正確的功能。'],
-    ['植物生長的條件','向老師說出兩個植物健康生長必需的條件。'],
     ['污染從哪裏來','為每張照片選出它屬於哪一種污染。'],
-    ['愛護環境的行動','向老師說出一個你可以做到的愛護環境行動。']
+    ['說話評估（兩題）','兩題都由學生口述作答，老師逐題給分，最後輸入一次密碼。']
   ];
-  var bodies = [s1Body,s2Body,s3Body,s4Body,s5Body,s6Body];
-  var marks = [4,8,12,6,16,4];
+  var bodies = [s1Body,s2Body,s3Body,s5Body,oralBody];
+  var marks = [4,8,12,16,10];
   view.innerHTML = stageShell(i+1, heads[i][0], marks[i], heads[i][1], bodies[i]());
-  stepNo.textContent = '第 ' + (i+1) + ' / 6 部分';
-  setBar(i/6*100);
+  stepNo.textContent = '第 ' + (i+1) + ' / 5 部分';
+  setBar(i/5*100);
   mainBtn.disabled = !DONES[i]();
-  mainBtn.textContent = (i===5) ? '查看成績' : '下一部分';
+  mainBtn.textContent = (i===4) ? '查看成績' : '下一部分';
   mainBtn.onclick = function(){
     if (!DONES[i]()) { toast('這一部分還未完成'); return; }
-    if (i===5){ finish(); } else { st.idx++; render(); }
+    if (i===4){ finish(); } else { st.idx++; render(); }
   };
   if (i===0) bindDrag();
 }
@@ -658,12 +660,11 @@ view.addEventListener('click', function(e){
     st.ts[sn] = parseInt(d.n, 10);
     return render();
   }
-  if (d.tconfirm){
-    var sn2 = parseInt(d.tconfirm, 10);
-    if (st.ts[sn2]===null || st.ts[sn2]===undefined){ toast('請先按答對數目'); return; }
-    var inp = document.getElementById('pw' + sn2);
+  if (d.tconfirm==='final'){
+    if (st.ts[4]==null || st.ts[6]==null){ toast('請先按兩題的答對數目'); return; }
+    var inp = document.getElementById('pwfinal');
     if (!inp || inp.value.trim() !== '1212'){ toast('密碼不正確，請老師再試'); return; }
-    st.tu[sn2] = true;
+    st.tu[4] = true; st.tu[6] = true;
     return render();
   }
 
@@ -695,26 +696,9 @@ view.addEventListener('click', function(e){
     st.ans.s3 = st.ans.s3 || {}; st.ans.s3[d.part] = d.fn;
     return render();
   }
-  // 第 4 關
-  if (d.cond){
-    var arr = st.ans.s4 || [];
-    var p = arr.indexOf(d.cond);
-    if (p>=0) arr.splice(p,1); else arr.push(d.cond);
-    st.ans.s4 = arr;
-    return render();
-  }
   // 第 5 關
   if (d.q){
     st.ans.s5 = st.ans.s5 || {}; st.ans.s5[d.q] = d.opt;
-    return render();
-  }
-  // 第 6 關
-  if (d.act){
-    var a6 = st.ans.s6 || [];
-    var p6 = a6.indexOf(d.act);
-    if (p6>=0) a6.splice(p6,1);
-    else { if (a6.length>=2){ toast('只選兩個行動，先取消一個'); return; } a6.push(d.act); }
-    st.ans.s6 = a6;
     return render();
   }
 });
@@ -727,7 +711,7 @@ function finish(){
   saveRecord(st.saved);
   st.screen = 'result';
   render();
-  maybeUpload(st.saved);
+  if (location.hash.indexOf('demo') < 0) maybeUpload(st.saved);   // 示範連結不上傳，免污染成績表
 }
 
 function readRecs(){
@@ -1016,7 +1000,7 @@ function testHook(){
 mainBtn.style.display = '';
 render();
 
-/* 示範模式（供教師培訓／截圖用，不影響學生作答）：#demo1 ~ #demo6、#demoresult、#demoteacher */
+/* 示範模式（供教師培訓／截圖用，不影響學生作答）：#demo1 ~ #demo5、#demo5b、#demoresult、#demoteacher */
 (function demo(){
   var h = (location.hash || '').replace('#','');
   if (h.indexOf('demo')!==0) return;
@@ -1030,19 +1014,19 @@ render();
       s5:{car:'air',fac:'air',sew:'water',oil:'water'}
     };
     st.ts = {4:2, 6:1}; st.tu = {4:true, 6:true};
-    st.screen='q'; st.idx=5; finish(); return;
+    st.screen='q'; st.idx=4; finish(); return;
   }
   var n = parseInt(h.replace('demo',''),10);
-  if (n>=1 && n<=6){
+  if (n>=1 && n<=5){
     st.idx = n-1;
     if (n===1) st.ans.s1 = {dog:'bio'};
     if (n===2) st.ans.s2 = {dog:'f1'};
     if (n===3) st.ans.s3 = {leaf:'fn1'};
-    if (n===4) { st.ts = {4:1}; st.tu = {}; }
-    if (n===5) st.ans.s5 = {car:'air', fac:'air'};
-    if (n===6) { st.ts = {6:1}; st.tu = {}; }
+    if (n===4) st.ans.s5 = {car:'air', fac:'air'};
+    if (n===5) { st.ts = {4:2, 6:1}; st.tu = {}; }
     st.screen='q'; render();
   }
+  if (h==='demo5b'){ st.screen='q'; st.idx=4; st.ts={4:2,6:1}; st.tu={4:true,6:true}; render(); }
 })();
 </script>
 </body>
